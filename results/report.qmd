@@ -1,7 +1,7 @@
 ---
 title: "Biomarkers of ASD"
 subtitle: "If you want a subtitle put it here"
-author: "List names here"
+author: "Andrew Guerra"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -16,9 +16,12 @@ execute:
 
 Use this as a template. Keep the headers and remove all other text. In all, your report can be quite short. When it is complete, render and then push changes to your team repository.
 
-```{r}
+```{r, message=FALSE}
 # load any other packages and read data here
 library(tidyverse)
+library(here)
+library(readr)
+raw.biomarkers <- read_csv(here("data", "biomarker-raw.csv"))
 ```
 
 ## Abstract
@@ -39,7 +42,61 @@ Summarize your findings here. I've included some subheaders in a way that seems 
 
 ### Impact of preprocessing and outliers
 
-Tasks 1-2
+1.  What do you imagine is the reason for log-transforming the protein levels in biomarker-raw.csv?
+
+The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.
+
+To verify this, we can sample from 5 proteins in the dataset and see their respective distributions.
+
+```{r, out.width='80%', fig.align='center'}
+set.seed(10302025)
+# Change Headers to Protein Acronyms
+colnames(raw.biomarkers) <- raw.biomarkers[1,]
+raw.data <- raw.biomarkers[-1,]
+sample.proteins <- sample(colnames(raw.data), 5)
+# RS of n=4 data
+cat('Our proteins sampled are: ', sample.proteins)
+
+# Checking distributions
+long.data <- raw.data %>%
+  select(all_of(sample.proteins)) %>%
+  pivot_longer(cols = everything(), names_to = "Protein", values_to = "Value") %>%
+  mutate(Value = as.numeric(Value))
+
+# Histogram
+long.data %>% 
+  drop_na() %>% 
+ggplot(aes(x = Value)) +
+  geom_histogram(color = "white", fill = "black", bins = 30) +
+  facet_wrap(~ Protein, scales = "free_x") +
+  labs(
+    title = "Distributions of Selected Protein Biomarkers",
+    x = "Protein Level",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+```
+
+After plotting the histograms of our sampled proteins, we see that they most (except Apo E4) exhibit notable skewness and are not normally distribution. Additionally, the range for these values is extremely wide. Next, we apply a log-transformation to help standardize our distribtutions.
+
+```{r, fig.align='center', out.width='80%'}
+set.seed(10302025)
+
+long.data %>% 
+  drop_na() %>% 
+ggplot(aes(x = log(Value))) +
+  geom_histogram(color = "white", fill = "black", bins = 30) +
+  facet_wrap(~ Protein, scales = "free_x") +
+  labs(
+    title = "Distributions of Selected Protein Biomarkers",
+    x = "Log-Transformed Protein Level",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
+
+After transforming our values, we see that the range is now much considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.
 
 ### Methodological variations
 
