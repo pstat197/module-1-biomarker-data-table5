@@ -6,8 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Andrew Guerra">
-<meta name="dcterms.date" content="2025-10-31">
+<meta name="author" content="Andrew Guerra,">
+<meta name="dcterms.date" content="2025-11-01">
 
 <title>Biomarkers of ASD</title>
 <style>
@@ -58,14 +58,14 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Andrew Guerra </p>
+             <p>Andrew Guerra, </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Updated</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 31, 2025</p>
+      <p class="date">November 1, 2025</p>
     </div>
   </div>
   
@@ -95,10 +95,8 @@ ul.task-list li input[type="checkbox"] {
 <p>Summarize your findings here. I’ve included some subheaders in a way that seems natural to me; you can structure this section however you like.</p>
 <section id="impact-of-preprocessing-and-outliers" class="level3">
 <h3 class="anchored" data-anchor-id="impact-of-preprocessing-and-outliers">Impact of preprocessing and outliers</h3>
-<ol type="1">
-<li>What do you imagine is the reason for log-transforming the protein levels in biomarker-raw.csv?</li>
-</ol>
-<p>The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.</p>
+<p><strong>What do you imagine is the reason for log-transforming the protein levels in biomarker-raw.csv?</strong></p>
+<p>Before protein levels are measured, a log-transformation is applied. The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.</p>
 <p>To verify this, we can sample from 5 proteins in the dataset and see their respective distributions.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output cell-output-stdout">
@@ -123,6 +121,41 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <p>After transforming our values, we see that the range is now much considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.</p>
+<p><strong>Temporarily remove the outlier trimming from preprocessing and do some exploratory analysis of the outlying values. Are there specific subjects (not values) that seem to be outliers? If so, are outliers more frequent in one group of the other?</strong></p>
+<p>Through our previous analyses, we see that the distribution of proteins are transformed to easily detect which have a non-normal relationship that can be investigated further. Shifting our focus, we aim to see whether subjects are outliers. That is, we aim to see whether there are subjects, portrayed as rows, that consist of outliers among multiple protein levels.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Outlier Distribution Table</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Group</th>
+<th style="text-align: right;">mean_outliers</th>
+<th style="text-align: right;">median_outliers</th>
+<th style="text-align: right;">sd_outliers</th>
+<th style="text-align: right;">max_outliers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">17.04</td>
+<td style="text-align: right;">9.5</td>
+<td style="text-align: right;">20.61</td>
+<td style="text-align: right;">119</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">19.65</td>
+<td style="text-align: right;">10.0</td>
+<td style="text-align: right;">30.39</td>
+<td style="text-align: right;">154</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>We created a table to see outlier trends by subject group. To do so, we standardized all 1,317 protein levels and counted values with an absolute value greater than 3 as an outlier. Based on our table, we see that ASD subjects had an average of about 17.04 outliers in protein levels while TD subjects had about 19.65. Additionally, the median outlier counters were nearly identical (9.5 for ASD and 10 for TD), indicating that the two groups have similar overall variation in protein measurements. However, the standard deviations (20.6 for ASD and 30.4 for TD) and maximum outlier counts (119 and 154, respectively) suggest that a few individual subjects in both groups exhibited unusually high numbers of outlying protein values. Overall, this does not suggest there being systematic differences between groups, rather it suggests there are few subjects in the data that have greater individual differences.</p>
 </section>
 <section id="methodological-variations" class="level3">
 <h3 class="anchored" data-anchor-id="methodological-variations">Methodological variations</h3>
