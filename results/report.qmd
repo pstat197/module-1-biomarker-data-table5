@@ -1,7 +1,7 @@
 ---
 title: "Biomarkers of ASD"
 subtitle: "If you want a subtitle put it here"
-author: "Andrew Guerra, "
+author: "Andrew Guerra, Pratyush Rallapally"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -22,6 +22,7 @@ library(tidyverse)
 library(here)
 library(readr)
 library(knitr)
+library(dplyr)
 raw.biomarkers <- read_csv(here("data", "biomarker-raw.csv"))
 
 ```
@@ -137,6 +138,10 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 Task 3
 
-### Improved classifier
+### Simplified classifier
 
-Task 4
+```{r, echo = FALSE, message=FALSE}
+kable(bind_rows(metrics_yours, metrics_full), caption = "Training vs Full-Data Performance", digits = 3)
+```
+
+To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of multiple testing and random forest methods as in the in-class analysis. By restricting selection to the training set, we avoided using any test data during feature selection, ensuring a more methodologically sound and generalizable panel. This approach yielded a panel of 4 proteins, compared with the larger 10-protein panel used in the in-class analysis, representing a reduction of roughly 60% in panel size. Despite this simplification, the panel achieved strong predictive performance (sensitivity 0.75, specificity 0.80, accuracy 0.774, AUC 0.871). Benchmarking against the in-class analysis (sensitivity 0.875, specificity 0.867, accuracy 0.871, AUC 0.925) shows that the slight reduction in performance is minor relative to the substantial gain in interpretability and efficiency, supporting the utility of the smaller panel. Using a smaller panel with fewer proteins has several practical benefits, including cheaper and faster assays in a lab setting, easier replication, and less risk of overfitting in predictions. Such a substantial decrease in the cost of resources justifies the minor accuracy loss.
