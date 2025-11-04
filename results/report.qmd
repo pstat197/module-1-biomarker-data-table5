@@ -1,7 +1,8 @@
 ---
 title: "Biomarkers of ASD"
-subtitle: "If you want a subtitle put it here"
-author: "Andrew Guerra, "
+subtitle: "Evaluating Methodological Choices in Serum Biomarker Identification"
+author: "Andrew Guerra, Satvik Talchuru, Akhil Gorla, Anishkumar Senthil, 
+Pratyush Rallapally"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -13,8 +14,6 @@ execute:
   echo: false
   cache: true
 ---
-
-Use this as a template. Keep the headers and remove all other text. In all, your report can be quite short. When it is complete, render and then push changes to your team repository.
 
 ```{r, message=FALSE}
 # load any other packages and read data here
@@ -135,8 +134,46 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 ### Methodological variations
 
-Task 3
+In this section, we examine how changes in methodological design will affect the performance and interpretability of our biomarker classifier. Below, we explore two variations:
 
-### Improved classifier
+**3a. Training/Test Split:** Performing the entire feature selection and model fitting process on a training subset, then evaluating performance on a previously excluded test set.
 
-Task 4
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(rsample)
+library(modelr)
+library(yardstick)
+
+set.seed(123)
+
+data <- biomarker_clean %>%
+  mutate(class = factor(group, levels = c("TD", "ASD"))) %>%
+  select(-group)
+
+# Partition 80/20
+split <- initial_split(data, prop = 0.8)
+train <- training(split)
+test  <- testing(split)
+
+# Fit logistic regression on training data
+fit <- glm(class ~ ., data = train, family = binomial)
+
+# Predictions on test set
+pred_df <- test %>%
+  add_predictions(fit, type = "response") %>%
+  mutate(pred.class = pred > 0.5,
+         truth = class,
+         pred.class = factor(pred.class, labels = c("TD", "ASD")))
+
+# Compute accuracy metrics
+metrics <- metric_set(accuracy, sensitivity, specificity, roc_auc)
+
+pred_df %>%
+  mutate(truth = factor(truth, levels = c("TD", "ASD"))) %>%
+  metrics(truth = truth, estimate = pred.class, pred, event_level = "second")
+```
+
+**3b. Increased Feature Set:** Expanding the range of top proteins used for model fitting from 10 to 20 to assess whether external predictors improve accuracy.
+
+### Task 4
