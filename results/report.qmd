@@ -141,6 +141,7 @@ Task 3
 ### Simplified classifier
 
 ```{r, echo = FALSE, message=FALSE}
+
 kable(bind_rows(metrics_yours, metrics_full), caption = "Training vs Full-Data Performance", digits = 3)
 ```
 
