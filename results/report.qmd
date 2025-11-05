@@ -35,7 +35,7 @@ The dataset originates from Hewitson et al. (2021), Blood biomarker discovery fo
 
 Blood samples were collected after participants fasted, then processed under controlled lab conditions. Protein levels were measured using the SomaLogic SOMAScan platform, which originally captured 1,317 proteins per sample. After running quality control checks, 1,125 proteins were kept for analysis.
 
-## Summary of published analysis
+## Summary of published analysis - Satvik
 
 Summarize the methodology of the paper in 1-3 paragraphs. You need not explain the methods in depth as we did in class; just indicate what methods were used and how they were combined. If possible, include a diagram that depicts the methodological design. (Quarto has support for [GraphViz and Mermaid flowcharts](https://quarto.org/docs/authoring/diagrams.html).) Provide key results: the proteins selected for the classifier and the estimated accuracy.
 
@@ -141,37 +141,28 @@ In this section, we examine how changes in methodological design will affect the
 ```{r}
 library(tidyverse)
 library(tidymodels)
-library(rsample)
 library(modelr)
+library(rsample)
 library(yardstick)
 
-set.seed(123)
+biomarker <- biomarker_clean
 
-data <- biomarker_clean %>%
-  mutate(class = factor(group, levels = c("TD", "ASD"))) %>%
+s_star <- c("DERM", "RELT", "IgD", "PTN", "FSTL1")
+
+biomarker <- biomarker %>%
+  select(group, all_of(s_star)) %>%
+  mutate(class = (group == "ASD")) %>%
   select(-group)
 
-# Partition 80/20
-split <- initial_split(data, prop = 0.8)
-train <- training(split)
-test  <- testing(split)
+set.seed(123)
+partitions <- initial_split(biomarker, prop = 0.8)
 
-# Fit logistic regression on training data
-fit <- glm(class ~ ., data = train, family = binomial)
+train <- training(partitions)
+test <- testing(partitions)
 
-# Predictions on test set
-pred_df <- test %>%
-  add_predictions(fit, type = "response") %>%
-  mutate(pred.class = pred > 0.5,
-         truth = class,
-         pred.class = factor(pred.class, labels = c("TD", "ASD")))
+fit <- glm(class ~ ., data = train, family = binomial(link = "logit"))
 
-# Compute accuracy metrics
-metrics <- metric_set(accuracy, sensitivity, specificity, roc_auc)
-
-pred_df %>%
-  mutate(truth = factor(truth, levels = c("TD", "ASD"))) %>%
-  metrics(truth = truth, estimate = pred.class, pred, event_level = "second")
+summary(fit)
 ```
 
 **3b. Increased Feature Set:** Expanding the range of top proteins used for model fitting from 10 to 20 to assess whether external predictors improve accuracy.
