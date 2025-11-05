@@ -164,6 +164,8 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 ### Methodological variations
 
+### 3a) Train v. Test Set Analysis
+
 ```{r}
 library(tidyverse)
 library(tidymodels)
@@ -175,6 +177,7 @@ load("../data/biomarker-clean.RData")
 
 biomarker <- biomarker_clean
 
+# These are  5 proteins of interest that were used in the log regression example
 s_star <- c("DERM", "RELT", "IgD", "PTN", "FSTL1")
 
 biomarker <- biomarker %>%
@@ -183,16 +186,43 @@ biomarker <- biomarker %>%
   select(-group)
 
 set.seed(123)
+
+# 80% used for model fitting (training) and 20% held out for evaluation (testing).
 partitions <- initial_split(biomarker, prop = 0.8)
 train <- training(partitions)
 test <- testing(partitions)
 
+# Predicts the probability of ASD (class == TRUE) based on protein levels.
 fit <- glm(class ~ ., data = train, family = binomial(link = "logit"))
-
 summary(fit)
+
+# Computing predictions on the test set
+pred_df <- test %>%
+  add_predictions(fit, type = "response") %>%
+  mutate(pred_class = (pred > 0.5),
+         group = factor(class, labels = c("TD", "ASD")),
+         pred_group = factor(pred_class, labels = c("TD", "ASD")))
+
+# Checking factor order
+levels(pred_df$group)
+
+# Defining evaluation metrics
+panel_fn <- metric_set(accuracy, sensitivity, specificity, roc_auc)
+
+results <- pred_df %>%
+  panel_fn(truth = group,
+           estimate = pred_group,
+           pred,
+           event_level = "second")
+
+results
 ```
 
-##### Top 10 Predictive Proteins
+After conducting the logistic regression on a training subset (80%) and evaluating performance on an excluded test set, the model achieved an accuracy of 0.7097, sensitivity of 0.7222, specificity of 0.6923, and AUROC of 0.8291. These results show that when the model is tested on unseen data, it correctly classifies about 71% of subjects overall and the sensitivity value of 0.72 means the classifier correctly identifies roughly 72% of children with ASD, while the specificity of 0.69 means it correctly recognizes about 69 % of typically developing children.
+
+Compared to the full-data analysis where accuracy ≈ 0.76 and AUC ≈ 0.83, these results show a small but average decline in performance due to testing on unseen data. We can infer that this decrease reflects reduced over-fitting and allows for a more accurate measure of the model’s generalization ability. Despite the decrease, the classifier maintains good discriminative power with AUC ≈ 0.83, establishing that the protein panel of DERM, RELT, IgD, PTN, and FSTL1 captures biological variation in relation to ASD versus TD subjects.
+
+### 3b) Top 10 Predictive Proteins
 
 To explore the impact of selecting more proteins for the biomarker panel, we expanded the selection criteria to identify the top 20 proteins using three different methods: t-tests for differential expression, Random Forest importance scores, and LASSO regression coefficients. This expansion allows us to evaluate whether including additional proteins could improve classification performance or reveal additional biomarkers of interest.
 
