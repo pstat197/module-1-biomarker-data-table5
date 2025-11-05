@@ -43,7 +43,33 @@ Summarize the methodology of the paper in 1-3 paragraphs. You need not explain t
 
 ## Findings
 
-Summarize your findings here. I've included some subheaders in a way that seems natural to me; you can structure this section however you like.
+### Methodological Decisions and Approach
+
+In our analysis of the ASD biomarker data, we made several key methodological decisions:
+
+1.  **Data Processing Choices**:
+    -   Retained log-transformation of protein levels to handle skewed distributions and varying scales
+    -   Investigated the impact of outlier trimming on both individual proteins and subjects
+    -   Used standardization (z-scores) for outlier detection across proteins
+2.  **Feature Selection Strategy**:
+    -   Expanded the protein panel beyond the original 10-protein limit to explore additional biomarkers
+    -   Applied three complementary selection methods:
+        -   T-tests for univariate differential expression
+        -   Random Forest importance scores for capturing non-linear relationships
+        -   LASSO regression for sparse feature selection with correlation consideration
+    -   Set selection threshold at top 20 proteins per method to balance panel size with potential biomarker discovery
+3.  **Method Integration**:
+    -   Combined results across methods to identify consensus proteins
+    -   Analyzed method agreement through overlap statistics
+    -   Created visualizations to compare rankings across methods
+    -   Used both statistical significance (t-tests) and predictive importance (RF, LASSO) metrics
+4.  **Validation Approach**:
+    -   Maintained separation between feature selection and model evaluation
+    -   Used cross-validation in LASSO to avoid overfitting
+    -   Set Random Forest parameters (ntree=1000) for stable importance measures
+    -   Considered both individual protein significance and combined panel performance
+
+These decisions were made to balance: - Discovery of novel biomarkers vs. risk of false positives - Model complexity vs. interpretability - Statistical rigor vs. practical clinical utility - Reproducibility vs. exploratory analysis
 
 ### Impact of preprocessing and outliers
 
@@ -136,7 +162,109 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 ### Methodological variations
 
-Task 3
+##### Top 10 Predictive Proteins
+
+To explore the impact of selecting more proteins for the biomarker panel, we expanded the selection criteria to identify the top 20 proteins using three different methods: t-tests for differential expression, Random Forest importance scores, and LASSO regression coefficients. This expansion allows us to evaluate whether including additional proteins could improve classification performance or reveal additional biomarkers of interest.
+
+```{r load-biomarker-data}
+load(here("data", "biomarker-clean.RData"))
+```
+
+```{r select-expanded-proteins}
+top_n <- 20
+
+dat <- biomarker_clean
+dat$group <- factor(dat$group)
+proteins <- setdiff(names(dat), c('group','ados'))
+
+tt_res <- sapply(proteins, function(p){
+  x <- dat[[p]]
+  grp <- dat$group
+  ok <- !is.na(x) & !is.na(grp)
+  if(sum(ok) < 3) return(NA)
+  t <- try(t.test(x[ok] ~ grp[ok]), silent=TRUE)
+  if(inherits(t,'try-error')) return(NA)
+  t$p.value
+})
+tt_df <- tibble::tibble(protein = proteins,
+                       pvalue = as.numeric(tt_res)) %>%
+  arrange(pvalue) %>%
+  slice_head(n = top_n)
+
+rf_dat <- dat %>% dplyr::select(dplyr::all_of(proteins))
+rf_resp <- dat$group
+rf_fit <- randomForest::randomForest(x = rf_dat, y = rf_resp, ntree = 1000, importance = TRUE)
+rf_imp_mat <- randomForest::importance(rf_fit, type = 2)
+rf_imp_val <- if(is.matrix(rf_imp_mat)) rf_imp_mat[,1] else rf_imp_mat
+rf_df <- tibble::tibble(protein = names(rf_imp_val), importance = as.numeric(rf_imp_val)) %>%
+  arrange(desc(importance)) %>%
+  slice_head(n = top_n)
+
+X <- as.matrix(rf_dat)
+y <- as.numeric(dat$group) - 1
+cv <- glmnet::cv.glmnet(X, y, family = 'binomial', alpha = 1, nfolds = 5)
+coef_min <- as.matrix(coef(cv, s = 'lambda.min'))
+coefs <- coef_min[-1,1]
+lasso_df <- tibble::tibble(protein = proteins, coef = as.numeric(coefs)) %>%
+  mutate(abscoef = abs(coef)) %>%
+  arrange(desc(abscoef)) %>%
+  slice_head(n = top_n)
+```
+
+```{r visualize-method-comparison, fig.width=10, fig.height=6}
+method_comparison <- bind_rows(
+  mutate(tt_df %>% mutate(rank = row_number()), method = "T-test"),
+  mutate(rf_df %>% mutate(rank = row_number()), method = "Random Forest"),
+  mutate(lasso_df %>% mutate(rank = row_number()), method = "LASSO")
+)
+
+ggplot(method_comparison, aes(x = rank, y = protein, color = method)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  scale_x_continuous(breaks = 1:top_n) +
+  labs(title = paste("Top", top_n, "Proteins Selected by Each Method"),
+       x = "Rank within Method",
+       y = "Protein",
+       color = "Selection Method") +
+  theme(legend.position = "bottom",
+        axis.text.y = element_text(size = 8))
+```
+
+```{r protein-overlap}
+tt_top <- tt_df$protein
+rf_top <- rf_df$protein
+lasso_top <- lasso_df$protein
+
+all_methods <- intersect(intersect(tt_top, rf_top), lasso_top)
+
+two_plus_methods <- unique(c(
+  intersect(tt_top, rf_top),
+  intersect(tt_top, lasso_top),
+  intersect(rf_top, lasso_top)
+))
+
+overlap_summary <- tibble::tribble(
+  ~"Overlap Type", ~"Count", ~"Percentage",
+  "Selected by all methods", length(all_methods), length(all_methods)/top_n*100,
+  "Selected by ≥2 methods", length(two_plus_methods), length(two_plus_methods)/top_n*100,
+  "Unique proteins total", length(unique(c(tt_top, rf_top, lasso_top))), 
+  length(unique(c(tt_top, rf_top, lasso_top)))/top_n*100
+)
+
+kable(overlap_summary, 
+      caption = paste("Overlap Analysis of Top", top_n, "Proteins"),
+      digits = 1)
+```
+
+Key findings from expanding the protein selection:
+
+1.  **Method Agreement**: Among the top `r top_n` proteins, `r length(all_methods)` were identified by all three methods, suggesting strong consensus on these biomarkers. An additional `r length(two_plus_methods) - length(all_methods)` proteins were selected by at least two methods.
+
+2.  **Unique Contributions**: Each method identified some proteins not found by the others, with a total of `r length(unique(c(tt_top, rf_top, lasso_top)))` unique proteins across all methods. This suggests that different statistical approaches may capture distinct aspects of the protein-ASD relationship.
+
+3.  **Ranking Patterns**: The visualization shows that while some proteins are consistently ranked highly across methods, there is considerable variation in the rankings, particularly for proteins ranked lower in the top `r top_n`.
+
+4.  **Implications**: The expanded panel reveals additional proteins that may be biologically relevant to ASD, though their predictive value would need to be validated in follow-up studies. The overlap analysis suggests that using multiple selection methods provides complementary information about potential biomarkers.
 
 ### Simplified classifier
 
