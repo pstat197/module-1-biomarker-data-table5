@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.5.47">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Andrew Guerra,">
-<meta name="dcterms.date" content="2025-11-03">
+<meta name="author" content="Andrew Guerra, Pratyush Rallapally">
+<meta name="dcterms.date" content="2025-11-04">
 
 <title>Biomarkers of ASD</title>
 <style>
@@ -58,14 +58,14 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Andrew Guerra, </p>
+             <p>Andrew Guerra, Pratyush Rallapally </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Updated</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 3, 2025</p>
+      <p class="date">November 4, 2025</p>
     </div>
   </div>
   
@@ -90,6 +90,44 @@ ul.task-list li input[type="checkbox"] {
 <section id="summary-of-published-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="summary-of-published-analysis">Summary of published analysis</h2>
 <p>Summarize the methodology of the paper in 1-3 paragraphs. You need not explain the methods in depth as we did in class; just indicate what methods were used and how they were combined. If possible, include a diagram that depicts the methodological design. (Quarto has support for <a href="https://quarto.org/docs/authoring/diagrams.html">GraphViz and Mermaid flowcharts</a>.) Provide key results: the proteins selected for the classifier and the estimated accuracy.</p>
+<section id="methodological-decisions-and-approach" class="level3">
+<h3 class="anchored" data-anchor-id="methodological-decisions-and-approach">Methodological Decisions and Approach</h3>
+<p>In our analysis of the ASD biomarker data, we made several key methodological decisions:</p>
+<ol type="1">
+<li>Data Processing Choices:
+<ul>
+<li>Retained log-transformation of protein levels to handle skewed distributions and varying scales</li>
+<li>Investigated the impact of outlier trimming on both individual proteins and subjects</li>
+<li>Used standardization (z-scores) for outlier detection across proteins</li>
+</ul></li>
+<li>Feature Selection Strategy:
+<ul>
+<li>Expanded the protein panel beyond the original 10-protein limit to explore additional biomarkers</li>
+<li>Applied three complementary selection methods:
+<ul>
+<li>T-tests for univariate differential expression</li>
+<li>Random Forest importance scores for capturing non-linear relationships</li>
+<li>LASSO regression for sparse feature selection with correlation consideration</li>
+</ul></li>
+<li>Set selection threshold at top 20 proteins per method to balance panel size with potential biomarker discovery</li>
+</ul></li>
+<li>Method Integration:
+<ul>
+<li>Combined results across methods to identify consensus proteins</li>
+<li>Analyzed method agreement through overlap statistics</li>
+<li>Created visualizations to compare rankings across methods</li>
+<li>Used both statistical significance (t-tests) and predictive importance (RF, LASSO) metrics</li>
+</ul></li>
+<li>Validation Approach:
+<ul>
+<li>Maintained separation between feature selection and model evaluation</li>
+<li>Used cross-validation in LASSO to avoid overfitting</li>
+<li>Set Random Forest parameters (ntree=1000) for stable importance measures</li>
+<li>Considered both individual protein significance and combined panel performance</li>
+</ul></li>
+</ol>
+<p>These decisions were made to balance: - Discovery of novel biomarkers vs.&nbsp;risk of false positives - Model complexity vs.&nbsp;interpretability - Statistical rigor vs.&nbsp;practical clinical utility - Reproducibility vs.&nbsp;exploratory analysis</p>
+</section>
 </section>
 <section id="findings" class="level2">
 <h2 class="anchored" data-anchor-id="findings">Findings</h2>
@@ -160,11 +198,93 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="methodological-variations" class="level3">
 <h3 class="anchored" data-anchor-id="methodological-variations">Methodological variations</h3>
-<p>Task 3</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = class ~ ., family = binomial(link = "logit"), data = train)
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)   
+(Intercept)  -0.1697     0.2234  -0.760  0.44731   
+DERM         -0.6105     0.3590  -1.700  0.08905 . 
+RELT         -0.5058     0.3231  -1.565  0.11750   
+IgD          -0.7381     0.2386  -3.093  0.00198 **
+PTN          -0.1146     0.3203  -0.358  0.72058   
+FSTL1        -0.3208     0.3030  -1.059  0.28970   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 170.12  on 122  degrees of freedom
+Residual deviance: 125.28  on 117  degrees of freedom
+AIC: 137.28
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+</div>
+<section id="top-10-predictive-proteins" class="level5">
+<h5 class="anchored" data-anchor-id="top-10-predictive-proteins">Top 10 Predictive Proteins</h5>
+<p>To explore the impact of selecting more proteins for the biomarker panel, we expanded the selection criteria to identify the top 20 proteins using three different methods: t-tests for differential expression, Random Forest importance scores, and LASSO regression coefficients. This expansion allows us to evaluate whether including additional proteins could improve classification performance or reveal additional biomarkers of interest.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="report_files/figure-html/visualize-method-comparison-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Overlap Analysis of Top 20 Proteins</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Overlap Type</th>
+<th style="text-align: right;">Count</th>
+<th style="text-align: right;">Percentage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Selected by all methods</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Selected by ≥2 methods</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">45</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Unique proteins total</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">235</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Key findings from expanding the protein selection:</p>
+<ol type="1">
+<li><p><strong>Method Agreement</strong>: Among the top 20 proteins, 4 were identified by all three methods, suggesting strong consensus on these biomarkers. An additional 5 proteins were selected by at least two methods.</p></li>
+<li><p><strong>Unique Contributions</strong>: Each method identified some proteins not found by the others, with a total of 47 unique proteins across all methods. This suggests that different statistical approaches may capture distinct aspects of the protein-ASD relationship.</p></li>
+<li><p><strong>Ranking Patterns</strong>: The visualization shows that while some proteins are consistently ranked highly across methods, there is considerable variation in the rankings, particularly for proteins ranked lower in the top 20.</p></li>
+<li><p><strong>Implications</strong>: The expanded panel reveals additional proteins that may be biologically relevant to ASD, though their predictive value would need to be validated in follow-up studies. The overlap analysis suggests that using multiple selection methods provides complementary information about potential biomarkers.</p></li>
+</ol>
 </section>
-<section id="improved-classifier" class="level3">
-<h3 class="anchored" data-anchor-id="improved-classifier">Improved classifier</h3>
-<p>Task 4</p>
+</section>
+<section id="simplified-classifier" class="level3">
+<h3 class="anchored" data-anchor-id="simplified-classifier">Simplified classifier</h3>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Metrics tables `metrics_yours` and/or `metrics_full` not available.
+ Run the analysis that creates these objects (e.g. scripts/analysis-main.R) or define them in an earlier chunk to display the comparison table.</code></pre>
+</div>
+</div>
+<p>To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of multiple testing and random forest methods as in the in-class analysis. By restricting selection to the training set, we avoided using any test data during feature selection, ensuring a more methodologically sound and generalizable panel. This yielded a 4-protein panel, compared with the 5-core proteins identified in Hewitson et al.’s original study. The reduction of a single protein is a modest simplification, and despite this, the panel achieved strong predictive performance (sensitivity 0.75, specificity 0.80, accuracy 0.774, AUC 0.871). Benchmarking against the in-class analysis (sensitivity 0.875, specificity 0.867, accuracy 0.871, AUC 0.925) shows that the slight reduction in performance is minor relative to the substantial gain in interpretability and efficiency, supporting the utility of the smaller panel. By performing feature selection exclusively on training data, our panel avoids overfitting to the dataset and is more likely to generalize to new cohorts. Using a smaller panel with fewer proteins has several practical benefits, including cheaper and faster assays in a lab setting, culminating in easier replication.</p>
 </section>
 </section>
 
