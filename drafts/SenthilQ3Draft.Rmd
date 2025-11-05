@@ -1,0 +1,118 @@
+---
+title: "Untitled"
+author: "Anishkumar Senthil"
+date: "2025-11-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+ 
+## Select top predictive proteins (choose a larger number than 10)
+
+The chunk below loads the processed data created by `preprocessing.R` and selects a configurable number of top predictive proteins using three selection methods: (1) t-test ranking by p-value, (2) Random Forest variable importance (MeanDecreaseGini), and (3) LASSO (glmnet) coefficient magnitude. Change `top_n` to any number > 10.
+
+```{r select-top, message=FALSE, warning=FALSE}
+# choose how many top proteins to select (default: 20)
+top_n <- 20
+
+# load processed data (adjust relative path if you move this Rmd)
+load('../data/biomarker-clean.RData') # creates object `biomarker_clean`
+
+library(dplyr)
+
+dat <- biomarker_clean
+dat$group <- factor(dat$group)
+
+proteins <- setdiff(names(dat), c('group','ados'))
+
+# 1) t-test ranking
+tt_res <- sapply(proteins, function(p){
+	x <- dat[[p]]
+	grp <- dat$group
+	ok <- !is.na(x) & !is.na(grp)
+	if(sum(ok) < 3) return(NA)
+	t <- try(t.test(x[ok] ~ grp[ok]), silent=TRUE)
+	if(inherits(t,'try-error')) return(NA)
+	t$p.value
+})
+tt_df <- tibble::tibble(protein = proteins,
+											 pvalue = as.numeric(tt_res)) %>%
+	arrange(pvalue) %>%
+	slice_head(n = top_n)
+
+# 2) Random Forest importance
+if(!requireNamespace('randomForest', quietly = TRUE)) {
+	stop("Package 'randomForest' required. Please install it before running this chunk.")
+}
+rf_dat <- dat %>% dplyr::select(dplyr::all_of(proteins))
+rf_resp <- dat$group
+rf_fit <- randomForest::randomForest(x = rf_dat, y = rf_resp, ntree = 1000, importance = TRUE)
+rf_imp_mat <- randomForest::importance(rf_fit, type = 2)
+# importance returns a matrix; use the first column (MeanDecreaseGini) if present
+rf_imp_val <- if(is.matrix(rf_imp_mat)) rf_imp_mat[,1] else rf_imp_mat
+rf_df <- tibble::tibble(protein = names(rf_imp_val), importance = as.numeric(rf_imp_val)) %>%
+	arrange(desc(importance)) %>%
+	slice_head(n = top_n)
+
+# 3) LASSO (glmnet)
+if(!requireNamespace('glmnet', quietly = TRUE)) {
+	stop("Package 'glmnet' required. Please install it before running this chunk.")
+}
+X <- as.matrix(rf_dat)
+# convert factor to 0/1
+y <- as.numeric(dat$group) - 1
+# fit LASSO with cross-validation
+cv <- glmnet::cv.glmnet(X, y, family = 'binomial', alpha = 1, nfolds = 5)
+# extract coefficients at the lambda that minimizes CV error
+# use the generic coef() so S3 dispatch finds the cv.glmnet method
+coef_min <- as.matrix(coef(cv, s = 'lambda.min'))
+# coef matrix includes intercept in row 1; align proteins accordingly
+coefs <- coef_min[-1,1]
+lasso_df <- tibble::tibble(protein = proteins, coef = as.numeric(coefs)) %>%
+	mutate(abscoef = abs(coef)) %>%
+	arrange(desc(abscoef)) %>%
+	slice_head(n = top_n)
+
+# collect top lists
+tt_top <- tt_df$protein
+rf_top <- rf_df$protein
+lasso_top <- lasso_df$protein
+
+cat(glue::glue("Selected top {top_n} proteins by each method:\n"))
+cat("- t-test (by p-value):\n")
+print(tt_top)
+cat('\n- Random Forest (importance):\n')
+print(rf_top)
+cat('\n- LASSO (coef magnitude):\n')
+print(lasso_top)
+
+# summary: how many unique proteins across methods
+unique_proteins <- unique(c(tt_top, rf_top, lasso_top))
+cat('\nTotal unique proteins across methods: ', length(unique_proteins), '\n')
+
+# also provide tables for downstream use
+selected_lists <- list(tt = tt_df, rf = rf_df, lasso = lasso_df)
+
+selected_lists
+```
+Note that the `echo = FALSE` parameter was added to the code chunk above to prevent printing of the R code that generated the plot.
