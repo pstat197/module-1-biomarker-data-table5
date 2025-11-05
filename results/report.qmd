@@ -136,7 +136,33 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 ### Methodological variations
 
-Task 3
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(modelr)
+library(rsample)
+library(yardstick)
+
+load("../data/biomarker-clean.RData")
+
+biomarker <- biomarker_clean
+
+s_star <- c("DERM", "RELT", "IgD", "PTN", "FSTL1")
+
+biomarker <- biomarker %>%
+  select(group, all_of(s_star)) %>%
+  mutate(class = (group == "ASD")) %>%
+  select(-group)
+
+set.seed(123)
+partitions <- initial_split(biomarker, prop = 0.8)
+train <- training(partitions)
+test <- testing(partitions)
+
+fit <- glm(class ~ ., data = train, family = binomial(link = "logit"))
+
+summary(fit)
+```
 
 ### Simplified classifier
 
