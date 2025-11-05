@@ -20,7 +20,6 @@ library(tidymodels)
 ```{r}
 load("~/Downloads/biomarker-clean.RData")
 
-
 ```
 
 ```{r}
@@ -150,20 +149,10 @@ fit <- glm(class ~ .,
 ```
 
 # Evaluate on test set
-class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
-
-results <- testing(biomarker_split) %>%
-  add_predictions(fit, type = "response") %>%
-  class_metrics(estimate = factor(pred > 0.5),
-                truth = factor(class),
-                pred,
-                event_level = "second")
-
-cat("\nLogistic Regression Performance (Fuzzy Intersection):\n")
-print(results)
-
 ```{r}
 class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
+
+
 ```
 
 
