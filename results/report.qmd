@@ -1,7 +1,6 @@
 ---
 title: "Biomarkers of ASD"
-subtitle: "If you want a subtitle put it here"
-author: "Andrew Guerra, Pratyush Rallapally"
+author: "Andrew Guerra, Pratyush Rallapally, Satvik Talchuru, Akhil Gorla, Anishkumar Senthil"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -13,8 +12,6 @@ execute:
   echo: false
   cache: true
 ---
-
-Use this as a template. Keep the headers and remove all other text. In all, your report can be quite short. When it is complete, render and then push changes to your team repository.
 
 ```{r, message=FALSE}
 # load any other packages and read data here
@@ -39,7 +36,11 @@ Blood samples were collected after participants fasted, then processed under con
 
 ## Summary of published analysis
 
-Summarize the methodology of the paper in 1-3 paragraphs. You need not explain the methods in depth as we did in class; just indicate what methods were used and how they were combined. If possible, include a diagram that depicts the methodological design. (Quarto has support for [GraphViz and Mermaid flowcharts](https://quarto.org/docs/authoring/diagrams.html).) Provide key results: the proteins selected for the classifier and the estimated accuracy.
+The research used a multi-step approach that combined advanced protein analysis with machine learning techniques to find the best set of protein biomarkers. Initially, serum samples from 76 boys with Autism Spectrum Disorder (ASD) and 78 typically developing (TD) boys were analyzed for proteins using the SomaLogic SOMAScan. This platform originally assessed 1,317 proteins, and after undergoing quality control, 1,125 proteins were analyzed further using bioinformatics techniques. The data on protein abundance were adjusted using log transformation and z-transformation prior to the start of prediction analysis.
+
+To identify the most predictive proteins, 3 distinct computational approaches were used to independently determine the top-10 proteins: Random Forest (RF) analysis, employing MeanDecreaseGini to assess feature importance; t-test analysis, which detected proteins significantly differing between the ASD and TD groups; and a correlation method, which assessed the statistical connection between protein levels and ASD severity, as indicated by ADOS total scores. The proteins that were shared by all three methods were referred to as five "core proteins."
+
+After identifying the main proteins, the researchers improved the predictive panel by utilizing a logistic regression model. The ability to predict was assessed by utilizing the Area Under the Curve measurement. This process included gradually incorporating the other non-core proteins into the core group to identify which additions enhanced predictive capability. The logistic regression model was trained by randomly assigning 80% of the subjects to a training dataset and 20% to a test dataset. This procedure was repeated 1,000 times to minimize bias and the optimal panel was made up of 9 proteins. Combining these nine proteins resulted in an AUC of 0.8599 ± 0.0640, sensitivity of 0.835 ± 0.1176, and specificity of 0.8217 ± 0.1178.
 
 ### Methodological Decisions and Approach
 
