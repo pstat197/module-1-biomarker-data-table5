@@ -7,19 +7,15 @@ library(yardstick)
 # load cleaned dataset
 load("data/biomarker-clean.RData")
 
-#---------------------------------------------
-# 1. Partition into training and test sets first
-#---------------------------------------------
+#partition
 set.seed(101422)
 biomarker_split <- initial_split(biomarker_clean, prop = 0.8)
 train <- training(biomarker_split)
 test  <- testing(biomarker_split)
 
-#---------------------------------------------
-# 2. FEATURE SELECTION — training data only
-#---------------------------------------------
+#training data only
 
-## ---- MULTIPLE TESTING ----
+#multiple testing
 test_fn <- function(.df) {
   t_test(
     .df,
@@ -49,7 +45,7 @@ proteins_s1 <- ttests_out %>%
   slice_min(p.adj, n = 10) %>%
   pull(protein)
 
-## ---- RANDOM FOREST ----
+# rf
 predictors_train <- train %>%
   select(-c(group, ados))
 response_train <- factor(train$group)
@@ -67,14 +63,10 @@ proteins_s2 <- rf_out$importance %>%
   slice_max(MeanDecreaseGini, n = 10) %>%
   pull(protein)
 
-#---------------------------------------------
-# 3. HARD INTERSECTION of top features
-#---------------------------------------------
+#hard intersect on top features
 proteins_sstar <- intersect(proteins_s1, proteins_s2)
 
-#---------------------------------------------
-# 4. LOGISTIC REGRESSION — training only
-#---------------------------------------------
+#training log regression
 biomarker_sstar <- train %>%
   select(group, any_of(proteins_sstar)) %>%
   mutate(class = group == "ASD") %>%
@@ -82,9 +74,7 @@ biomarker_sstar <- train %>%
 
 fit <- glm(class ~ ., data = biomarker_sstar, family = "binomial")
 
-#---------------------------------------------
-# 5. Evaluate on test data (never seen before)
-#---------------------------------------------
+#eval on test data
 test_sstar <- test %>%
   select(group, any_of(proteins_sstar)) %>%
   mutate(class = group == "ASD") %>%
@@ -97,7 +87,7 @@ test_sstar <- test_sstar %>%
 # metrics
 class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
 
-# Add prediction and classification columns
+# add prediction and classification columns
 test_sstar_eval <- test_sstar %>%
   mutate(
     pred = predict(fit, newdata = test_sstar, type = "response"),
@@ -105,10 +95,10 @@ test_sstar_eval <- test_sstar %>%
     truth = factor(class, levels = c(FALSE, TRUE))
   )
 
-# Define metrics
+# define metrics
 class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
 
-# Evaluate
+# evaluate
 test_sstar_eval %>%
   class_metrics(
     truth = truth,
@@ -118,26 +108,12 @@ test_sstar_eval %>%
   )
 
 
-## -----------------------------------------------
-## BENCHMARK: Compare your "training-only" pipeline 
-##             vs. in-class (full-data) pipeline
-## -----------------------------------------------
-
-#--------------------------------------------------
-# 1. Load data and your existing train/test split
-#--------------------------------------------------
-load("data/biomarker-clean.RData")
-
 set.seed(101422)
 biomarker_split <- initial_split(biomarker_clean, prop = 0.8)
 train <- training(biomarker_split)
 test  <- testing(biomarker_split)
 
-#--------------------------------------------------
-# 2. YOUR PIPELINE (training-only feature selection)
-#--------------------------------------------------
-# (Assumes you already ran your full code up to test_sstar_eval)
-# test_sstar_eval should already include: truth, estimate, pred
+#our approach
 
 metrics_yours <- test_sstar_eval %>%
   summarise(
@@ -148,11 +124,9 @@ metrics_yours <- test_sstar_eval %>%
   ) %>%
   mutate(method = "Training-only selection")
 
-#--------------------------------------------------
-# 3. IN-CLASS PIPELINE (feature selection on full data)
-#--------------------------------------------------
 
-## ---- Multiple testing on full data ----
+
+#t testing on full data (og in-class approach)
 test_fn <- function(.df){
   t_test(.df,
          formula = level ~ group,
@@ -179,7 +153,7 @@ proteins_s1_full <- ttests_out_full %>%
   slice_min(p.adj, n = 10) %>%
   pull(protein)
 
-## ---- Random forest on full data ----
+# RF on full data
 predictors_full <- biomarker_clean %>%
   select(-c(group, ados))
 response_full <- factor(biomarker_clean$group)
@@ -197,10 +171,10 @@ proteins_s2_full <- rf_out_full$importance %>%
   slice_max(MeanDecreaseGini, n = 10) %>%
   pull(protein)
 
-## ---- Hard intersection ----
+#hard intersection
 proteins_sstar_full <- intersect(proteins_s1_full, proteins_s2_full)
 
-## ---- Logistic regression ----
+#log regression
 biomarker_sstar_full <- biomarker_clean %>%
   select(group, any_of(proteins_sstar_full)) %>%
   mutate(class = (group == "ASD")) %>%
@@ -208,9 +182,7 @@ biomarker_sstar_full <- biomarker_clean %>%
 
 fit_full <- glm(class ~ ., data = biomarker_sstar_full, family = "binomial")
 
-#--------------------------------------------------
-# 4. Evaluate in-class model on YOUR held-out test set
-#--------------------------------------------------
+#eval model on our test set
 test_full <- test %>%
   select(group, any_of(proteins_sstar_full)) %>%
   mutate(class = (group == "ASD")) %>%
@@ -232,9 +204,7 @@ metrics_full <- test_full_eval %>%
   ) %>%
   mutate(method = "In-class (full-data selection)")
 
-#--------------------------------------------------
-# 5. Combine and compare
-#--------------------------------------------------
+#combine and compare
 bind_rows(metrics_yours, metrics_full)
 
 
