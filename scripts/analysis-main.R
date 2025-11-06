@@ -231,6 +231,7 @@ proteins_s1 <- ttests_out %>%
   slice_min(p.adj, n = 10) %>%
   pull(protein)
 
+
 cat("Top proteins from t-tests:\n")
 print(proteins_s1)
 
