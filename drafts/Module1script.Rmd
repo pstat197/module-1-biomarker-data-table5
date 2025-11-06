@@ -1,0 +1,181 @@
+---
+title: "Module 1: Proteomic Analysis of ASD Biomarkers""
+author: "Akhil Gorla"
+date: "2025-11-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(randomForest)
+library(yardstick)
+library(modelr)
+library(tidymodels)
+```
+
+```{r}
+load("~/Downloads/biomarker-clean.RData")
+
+```
+
+```{r}
+table(biomarker_clean$group)
+```
+
+```{r}
+test_fn <- function(.df){
+  t_test(.df, 
+         formula = level ~ group,
+         order = c('ASD', 'TD'),
+         alternative = 'two-sided',
+         var.equal = F)
+}
+
+```
+
+```{r}
+ttests_out <- biomarker_clean %>%
+  # drop ADOS score
+  select(-ados) %>%
+  # arrange in long format
+  pivot_longer(-group, 
+               names_to = 'protein', 
+               values_to = 'level') %>%
+  # nest by protein
+  nest(data = c(level, group)) %>% 
+  # compute t tests
+  mutate(ttest = map(data, test_fn)) %>%
+  unnest(ttest) %>%
+  # sort by p-value
+  arrange(p_value) %>%
+  # multiple testing correction
+  mutate(m = n(),
+         hm = log(m) + 1/(2*m) - digamma(1),
+         rank = row_number(),
+         p.adj = m*hm*p_value/rank)
+
+```
+
+
+
+```{r}
+proteins_s1 <- ttests_out %>%
+  slice_min(p.adj, n = 10) %>%
+  pull(protein)
+
+cat("Top proteins from t-tests:\n")
+print(proteins_s1)
+```
+
+
+# ===============================================================
+# RANDOM FOREST
+# ===============================================================
+
+```{r}
+predictors <- biomarker_clean %>%
+  select(-c(group, ados))
+
+response <- biomarker_clean %>% pull(group) %>% factor()
+
+set.seed(101422)
+rf_out <- randomForest(x = predictors, 
+                       y = response, 
+                       ntree = 1000, 
+                       importance = TRUE)
+
+cat("\nRandom Forest confusion matrix:\n")
+print(rf_out$confusion)
+
+```
+
+
+```{r}
+proteins_s2 <- rf_out$importance %>% 
+  as_tibble() %>%
+  mutate(protein = rownames(rf_out$importance)) %>%
+  slice_max(MeanDecreaseGini, n = 10) %>%
+  pull(protein)
+
+cat("\nTop proteins from Random Forest:\n")
+print(proteins_s2)
+```
+
+
+```{r}
+top_ttest <- proteins_s1
+top_rf <- proteins_s2
+
+protein_counts <- table(c(top_ttest, top_rf))
+
+fuzzy_proteins <- names(protein_counts[protein_counts >= 2])
+
+cat("\nProteins selected by fuzzy intersection:\n")
+print(fuzzy_proteins)
+```
+
+# If no overlap, this defaults to an empty set.
+# You can expand later to include a third method like LASSO if desired.
+
+# ===============================================================
+# LOGISTIC REGRESSION (using fuzzy intersection proteins)
+# ===============================================================
+
+# Build subset of data with selected proteins
+```{r}
+biomarker_sstar <- biomarker_clean %>%
+  select(group, any_of(fuzzy_proteins)) %>%
+  mutate(class = factor(ifelse(group == "ASD", "ASD", "TD"))) %>%
+  select(-group)
+```
+
+
+# Partition into training/testing sets
+```{r}
+set.seed(101422)
+biomarker_split <- biomarker_sstar %>%
+  initial_split(prop = 0.8, strata = class)
+```
+
+# Fit logistic regression on training data
+```{r}
+fit <- glm(class ~ ., 
+           data = training(biomarker_split), 
+           family = "binomial")
+```
+
+# Evaluate on test set
+```{r}
+class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
+
+
+```
+
+
+```{r}
+results <- testing(biomarker_split) %>%
+  add_predictions(fit, type = "response") %>%
+  mutate(
+    class = factor(class, levels = c("TD", "ASD")),
+    pred_label = factor(ifelse(pred > 0.5, "ASD", "TD"),
+                        levels = c("TD", "ASD"))
+  ) %>%
+  class_metrics(
+    truth = class,
+    estimate = pred_label,
+    pred,
+    event_level = "second"
+  )
+
+```
+
+```{r}
+cat("\nLogistic Regression Performance (Fuzzy Intersection):\n")
+print(results, n = Inf)
+```
+
+

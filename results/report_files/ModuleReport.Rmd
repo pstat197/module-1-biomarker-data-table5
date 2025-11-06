@@ -1,0 +1,12 @@
+---
+title: 'Module 1: Proteomic Analysis of ASD Biomarkers Write Up'
+author: "Akhil Gorla"
+date: "2025-11-05"
+output: html_document
+---
+## Interpretation:
+For this part, I changed the hard intersection between feature selection methods into a fuzzy intersection. Instead of only keeping proteins that showed up in both the t-test and Random Forest results, I kept any proteins that appeared in at least two of the top ten lists. This gave me five proteins: Cadherin-5, DERM, IgD, MRC2, and RELT.
+
+I used these proteins to train a logistic regression model and then tested how well it could separate ASD from TD samples. At first, the test set didn’t include any ASD samples, which made it impossible to calculate sensitivity and specificity. After redoing the split to make sure both classes were represented, the model ran fine but the overall accuracy and AUROC weren’t that strong.
+
+In simple terms, the fuzzy intersection added a few more features but didn’t really make the model better. It shows that just because a protein shows up in multiple selection methods doesn’t mean it’s necessarily more useful for predicting ASD. The results also highlight how much random data splitting can affect model performance when the dataset is small.
