@@ -22,41 +22,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -71,6 +36,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="report_files/libs/bootstrap/bootstrap-16bbabe37efa2ecafad14e96199f1a13.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="report_files/libs/quarto-diagram/mermaid.min.js"></script>
+<script src="report_files/libs/quarto-diagram/mermaid-init.js"></script>
+<link href="report_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
+<script src="report_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="report_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
 
 
 </head>
@@ -114,7 +84,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="abstract" class="level2">
 <h2 class="anchored" data-anchor-id="abstract">Abstract</h2>
-<p>In this analysis, we reexamined serum protein biomarker data from Hewitson et al.&nbsp;(2021) to explore the sensitivity of autism spectrum disorder (ASD) classification results to alternative methodological choices. After log-transforming protein levels to reduce skew and stabilize variance, we investigated the effects of outlier trimming, feature selection thresholds, and data partitioning strategies. Our exploratory analysis showed that outlier frequency varied modestly between groups but did not indicate systematic bias. To assess robustness, we replicated the published multi-method feature selection pipeline, combining t-tests, Random Forest variable importance, and LASSO regression, under modified settings. Using a training-only feature selection procedure, we developed a simplified 4-protein panel that maintained strong predictive performance (AUC = 0.871, accuracy = 0.774) compared to the in-class and published analyses, which used larger protein panels (AUC ≈ 0.92). These findings demonstrate that a smaller, more interpretable model can achieve comparable diagnostic accuracy while reducing overfitting risk and improving methodological rigor. Overall, our results reinforce the stability of the core protein biomarkers while highlighting the potential efficiency gains from streamlined feature selection.</p>
+<p>In this analysis, we reexamined serum protein biomarker data from Hewitson et al.&nbsp;(2021) to evaluate the sensitivity of autism spectrum disorder (ASD) classification to alternative methodological choices. We log-transformed protein levels to reduce skew and stabilize variance, explored outlier patterns, and tested modifications to feature selection and data partitioning strategies. By replicating the multi-method pipeline combining t-tests, Random Forest importance, and LASSO regression, we identified a smaller, 4-protein panel using training-only selection that achieved similarly strong predictive performance (AUC = 0.871, accuracy = 0.774), comparable to larger panels from the in-class and published analyses. These results demonstrate that a streamlined, interpretable model can maintain classification accuracy, reduce overfitting risk, and confirm the robustness of the core protein biomarkers.</p>
 </section>
 <section id="dataset" class="level2">
 <h2 class="anchored" data-anchor-id="dataset">Dataset</h2>
@@ -124,53 +94,55 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="summary-of-published-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="summary-of-published-analysis">Summary of published analysis</h2>
 <p>The research used a multi-step approach that combined advanced protein analysis with machine learning techniques to find the best set of protein biomarkers. Initially, serum samples from 76 boys with Autism Spectrum Disorder (ASD) and 78 typically developing (TD) boys were analyzed for proteins using the SomaLogic SOMAScan. This platform originally assessed 1,317 proteins, and after undergoing quality control, 1,125 proteins were analyzed further using bioinformatics techniques. The data on protein abundance were adjusted using log transformation and z-transformation prior to the start of prediction analysis.</p>
-<p>To identify the most predictive proteins, 3 distinct computational approaches were used to independently determine the top-10 proteins: Random Forest (RF) analysis, employing MeanDecreaseGini to assess feature importance; t-test analysis, which detected proteins significantly differing between the ASD and TD groups; and a correlation method, which assessed the statistical connection between protein levels and ASD severity, as indicated by ADOS total scores. The proteins that were shared by all three methods were referred to as five “core proteins.”</p>
-<p>After identifying the main proteins, the researchers improved the predictive panel by utilizing a logistic regression model. The ability to predict was assessed by utilizing the Area Under the Curve measurement. This process included gradually incorporating the other non-core proteins into the core group to identify which additions enhanced predictive capability. The logistic regression model was&nbsp;trained by randomly assigning 80% of the subjects to a training dataset and 20% to a test dataset. This procedure was repeated 1,000 times to minimize bias and the optimal panel was made up of 9 proteins. Combining these nine proteins resulted in an AUC of 0.8599 ± 0.0640, sensitivity of 0.835 ± 0.1176, and specificity of 0.8217 ± 0.1178.</p>
-<section id="methodological-decisions-and-approach" class="level3">
-<h3 class="anchored" data-anchor-id="methodological-decisions-and-approach">Methodological Decisions and Approach</h3>
-<p>In our analysis of the ASD biomarker data, we made several key methodological decisions:</p>
-<ol type="1">
-<li>Data Processing Choices:
-<ul>
-<li>Retained log-transformation of protein levels to handle skewed distributions and varying scales</li>
-<li>Investigated the impact of outlier trimming on both individual proteins and subjects</li>
-<li>Used standardization (z-scores) for outlier detection across proteins</li>
-</ul></li>
-<li>Feature Selection Strategy:
-<ul>
-<li>Expanded the protein panel beyond the original 10-protein limit to explore additional biomarkers</li>
-<li>Applied three complementary selection methods:
-<ul>
-<li>T-tests for univariate differential expression</li>
-<li>Random Forest importance scores for capturing non-linear relationships</li>
-<li>LASSO regression for sparse feature selection with correlation consideration</li>
-</ul></li>
-<li>Set selection threshold at top 20 proteins per method to balance panel size with potential biomarker discovery</li>
-</ul></li>
-<li>Method Integration:
-<ul>
-<li>Combined results across methods to identify consensus proteins</li>
-<li>Analyzed method agreement through overlap statistics</li>
-<li>Created visualizations to compare rankings across methods</li>
-<li>Used both statistical significance (t-tests) and predictive importance (RF, LASSO) metrics</li>
-</ul></li>
-<li>Validation Approach:
-<ul>
-<li>Maintained separation between feature selection and model evaluation</li>
-<li>Used cross-validation in LASSO to avoid overfitting</li>
-<li>Set Random Forest parameters (ntree=1000) for stable importance measures</li>
-<li>Considered both individual protein significance and combined panel performance</li>
-</ul></li>
-</ol>
-<p>These decisions were made to balance: - Discovery of novel biomarkers vs.&nbsp;risk of false positives - Model complexity vs.&nbsp;interpretability - Statistical rigor vs.&nbsp;practical clinical utility - Reproducibility vs.&nbsp;exploratory analysis</p>
-</section>
+<p>To identify the most predictive proteins, 3 distinct computational approaches were used to independently determine the top-10 proteins: Random Forest (RF) analysis, employing MeanDecreaseGini to assess feature importance; t-test analysis, which detected proteins significantly differing between the ASD and TD groups; and a correlation method, which assessed the statistical connection between protein levels and ASD severity, as indicated by ADOS total scores. The proteins that were shared by all three methods were referred to as five “core proteins”.</p>
+<p>The predictive performance of the proteins was evaluated using a logistic regression model as each non-core protein was added incrementally to the core group. The ability to predict was assessed by utilizing Area Under the Curve (AUC) measurement. This process included gradually incorporating the other non-core proteins into the core group to identify which additions enhanced predictive capability, with four additional proteins selected based on incremental AUC improvement to form a final 9-protein panel. The logistic regression model was&nbsp;trained by randomly assigning 80% of the subjects to a training dataset and 20% to a test dataset. This procedure was repeated 1,000 times to minimize bias and the optimal panel was made up of 9 proteins. Combining these nine proteins resulted in an AUC of 0.8599 ± 0.0640, sensitivity of 0.835 ± 0.1176, and specificity of 0.8217 ± 0.1178.</p>
+<p>Below is a schematic of the experimental process in Hewitson et al.:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A[data]
+    B(multiple testing)
+    C(correlation analysis)
+    D(random forest)
+    E(ensemble selection)
+    F(logistic regression)
+    MP[multiple partitioning]
+
+    subgraph Outputs
+        G[selected variables]
+        H[accuracy quantification]
+    end
+
+    A --&gt; B
+    A --&gt; C
+    A --&gt; D
+    B --&gt; E
+    C --&gt; E
+    D --&gt; E
+    E --&gt; F
+    F --&gt; G
+    F --&gt; H
+    A --&gt; F
+    A --&gt; MP
+    MP --&gt; H
+
+    style Outputs fill:transparent,stroke:#000,stroke-width:0px
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
 </section>
 <section id="findings" class="level2">
 <h2 class="anchored" data-anchor-id="findings">Findings</h2>
 <section id="impact-of-preprocessing-and-outliers" class="level3">
 <h3 class="anchored" data-anchor-id="impact-of-preprocessing-and-outliers">Impact of preprocessing and outliers</h3>
 <p><strong>What do you imagine is the reason for log-transforming the protein levels in biomarker-raw.csv?</strong></p>
-<p>Before protein levels are measured, a log-transformation is applied. The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.</p>
+<p>The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.</p>
 <p>To verify this, we can sample from 5 proteins in the dataset and see their respective distributions.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output cell-output-stdout">
@@ -179,22 +151,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="report_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:80.0%"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>After plotting the histograms of our sampled proteins, we see that they most (except Apo E4) exhibit notable skewness and are not normally distribution. Additionally, the range for these values is extremely wide. Next, we apply a log-transformation to help standardize our distribtutions.</p>
-<div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
 <p><img src="report_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:80.0%"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>After transforming our values, we see that the range is now much considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.</p>
+<p>After plotting the histograms of our sampled proteins, we see that they most (except Apo E4) exhibit notable skewness and are not normally distribution. Additionally, the range for these values is extremely wide. Next, we apply a log-transformation to help standardize our distributions.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="report_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:80.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>After transforming our values, we see that the range is now considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.</p>
 <p><strong>Temporarily remove the outlier trimming from preprocessing and do some exploratory analysis of the outlying values. Are there specific subjects (not values) that seem to be outliers? If so, are outliers more frequent in one group of the other?</strong></p>
 <p>Through our previous analyses, we see that the distribution of proteins are transformed to easily detect which have a non-normal relationship that can be investigated further. Shifting our focus, we aim to see whether subjects are outliers. That is, we aim to see whether there are subjects, portrayed as rows, that consist of outliers among multiple protein levels.</p>
 <div class="cell" data-layout-align="center">
@@ -237,41 +209,97 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="a-train-v.-test-set-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="a-train-v.-test-set-analysis">3a) Train v. Test Set Analysis</h3>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Call:
-glm(formula = class ~ ., family = binomial(link = "logit"), data = train)
-
-Coefficients:
-            Estimate Std. Error z value Pr(&gt;|z|)   
-(Intercept)  -0.1697     0.2234  -0.760  0.44731   
-DERM         -0.6105     0.3590  -1.700  0.08905 . 
-RELT         -0.5058     0.3231  -1.565  0.11750   
-IgD          -0.7381     0.2386  -3.093  0.00198 **
-PTN          -0.1146     0.3203  -0.358  0.72058   
-FSTL1        -0.3208     0.3030  -1.059  0.28970   
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-(Dispersion parameter for binomial family taken to be 1)
-
-    Null deviance: 170.12  on 122  degrees of freedom
-Residual deviance: 125.28  on 117  degrees of freedom
-AIC: 137.28
-
-Number of Fisher Scoring iterations: 5</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Logistic Regression Coefficients</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">std.error</th>
+<th style="text-align: right;">statistic</th>
+<th style="text-align: right;">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">-0.170</td>
+<td style="text-align: right;">0.223</td>
+<td style="text-align: right;">-0.760</td>
+<td style="text-align: right;">0.447</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">DERM</td>
+<td style="text-align: right;">-0.611</td>
+<td style="text-align: right;">0.359</td>
+<td style="text-align: right;">-1.700</td>
+<td style="text-align: right;">0.089</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RELT</td>
+<td style="text-align: right;">-0.506</td>
+<td style="text-align: right;">0.323</td>
+<td style="text-align: right;">-1.565</td>
+<td style="text-align: right;">0.118</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">IgD</td>
+<td style="text-align: right;">-0.738</td>
+<td style="text-align: right;">0.239</td>
+<td style="text-align: right;">-3.093</td>
+<td style="text-align: right;">0.002</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PTN</td>
+<td style="text-align: right;">-0.115</td>
+<td style="text-align: right;">0.320</td>
+<td style="text-align: right;">-0.358</td>
+<td style="text-align: right;">0.721</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">FSTL1</td>
+<td style="text-align: right;">-0.321</td>
+<td style="text-align: right;">0.303</td>
+<td style="text-align: right;">-1.059</td>
+<td style="text-align: right;">0.290</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] "TD"  "ASD"</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 4 × 3
-  .metric     .estimator .estimate
-  &lt;chr&gt;       &lt;chr&gt;          &lt;dbl&gt;
-1 accuracy    binary         0.710
-2 sensitivity binary         0.722
-3 specificity binary         0.692
-4 roc_auc     binary         0.829</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Model Evaluation Metrics</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">.metric</th>
+<th style="text-align: left;">.estimator</th>
+<th style="text-align: right;">.estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">accuracy</td>
+<td style="text-align: left;">binary</td>
+<td style="text-align: right;">0.710</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sensitivity</td>
+<td style="text-align: left;">binary</td>
+<td style="text-align: right;">0.722</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">specificity</td>
+<td style="text-align: left;">binary</td>
+<td style="text-align: right;">0.692</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">roc_auc</td>
+<td style="text-align: left;">binary</td>
+<td style="text-align: right;">0.829</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <p>After conducting the logistic regression on a training subset (80%) and evaluating performance on an excluded test set, the model achieved an accuracy of 0.7097, sensitivity of 0.7222, specificity of 0.6923, and AUROC of 0.8291. These results show that when the model is tested on unseen data, it correctly classifies about 71% of subjects overall and the sensitivity value of 0.72 means the classifier correctly identifies roughly 72% of children with ASD, while the specificity of 0.69 means it correctly recognizes about 69 % of typically developing children.</p>
@@ -331,129 +359,145 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <section id="c-fuzzy-intersection" class="level3">
 <h3 class="anchored" data-anchor-id="c-fuzzy-intersection">3c) Fuzzy Intersection</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Setup</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(yardstick)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(modelr)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># T-TESTS</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>test_fn <span class="ot">&lt;-</span> <span class="cf">function</span>(.df){</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t_test</span>(.df, </span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">formula =</span> level <span class="sc">~</span> group,</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">order =</span> <span class="fu">c</span>(<span class="st">'ASD'</span>, <span class="st">'TD'</span>),</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">alternative =</span> <span class="st">'two-sided'</span>,</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">var.equal =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>ttests_out <span class="ot">&lt;-</span> biomarker_clean <span class="sc">%&gt;%</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>ados) <span class="sc">%&gt;%</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>group, <span class="at">names_to =</span> <span class="st">'protein'</span>, <span class="at">values_to =</span> <span class="st">'level'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nest</span>(<span class="at">data =</span> <span class="fu">c</span>(level, group)) <span class="sc">%&gt;%</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ttest =</span> <span class="fu">map</span>(data, test_fn)) <span class="sc">%&gt;%</span></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(ttest) <span class="sc">%&gt;%</span></span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(p_value) <span class="sc">%&gt;%</span></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">m =</span> <span class="fu">n</span>(),</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>         <span class="at">hm =</span> <span class="fu">log</span>(m) <span class="sc">+</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">2</span><span class="sc">*</span>m) <span class="sc">-</span> <span class="fu">digamma</span>(<span class="dv">1</span>),</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>         <span class="at">rank =</span> <span class="fu">row_number</span>(),</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">p.adj =</span> m<span class="sc">*</span>hm<span class="sc">*</span>p_value<span class="sc">/</span>rank)</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>proteins_s1 <span class="ot">&lt;-</span> ttests_out <span class="sc">%&gt;%</span></span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(p.adj, <span class="at">n =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(protein)</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Top proteins from t-tests:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Top proteins from t-tests:</code></pre>
+<div class="cell-output-display">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
+<caption>Top proteins from t-tests</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Protein</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">DERM</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">RELT</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Calcineurin</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">C1QR1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MRC2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">IgD</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">CXCL16, soluble</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">PTN</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">FSTL1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Cadherin-5</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(proteins_s1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code> [1] "DERM"            "RELT"            "Calcineurin"     "C1QR1"          
- [5] "MRC2"            "IgD"             "CXCL16, soluble" "PTN"            
- [9] "FSTL1"           "Cadherin-5"     </code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># RANDOM FOREST</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>predictors <span class="ot">&lt;-</span> biomarker_clean <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(group, ados))</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>response <span class="ot">&lt;-</span> <span class="fu">factor</span>(biomarker_clean<span class="sc">$</span>group)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">101422</span>)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>rf_out <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(<span class="at">x =</span> predictors, <span class="at">y =</span> response, <span class="at">ntree =</span> <span class="dv">1000</span>, <span class="at">importance =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Random Forest confusion matrix:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Random Forest confusion matrix:</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(rf_out<span class="sc">$</span>confusion)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>    ASD TD class.error
-ASD  48 28   0.3684211
-TD   17 61   0.2179487</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Random Forest Confusion Matrix</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">ASD</th>
+<th style="text-align: right;">TD</th>
+<th style="text-align: right;">class.error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">0.368</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">0.218</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>proteins_s2 <span class="ot">&lt;-</span> rf_out<span class="sc">$</span>importance <span class="sc">%&gt;%</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"protein"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(MeanDecreaseGini, <span class="at">n =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(protein)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Top proteins from Random Forest:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Top proteins from Random Forest:</code></pre>
+<div class="cell-output-display">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
+<caption>Top proteins from Random Forest</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Protein</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">DERM</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">IgD</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">TGF-b R III</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MAPK14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">FSTL1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">RELT</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">eIF-4H</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">M2-PK</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">SOST</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ALCAM</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(proteins_s2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code> [1] "DERM"        "IgD"         "TGF-b R III" "MAPK14"      "FSTL1"      
- [6] "RELT"        "eIF-4H"      "M2-PK"       "SOST"        "ALCAM"      </code></pre>
+<div class="cell-output-display">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
+<caption>Proteins Selected by Fuzzy Intersection</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Protein</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">DERM</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">FSTL1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">IgD</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">RELT</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># FUZZY INTERSECTION</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>protein_counts <span class="ot">&lt;-</span> <span class="fu">table</span>(<span class="fu">c</span>(proteins_s1, proteins_s2))</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>fuzzy_proteins <span class="ot">&lt;-</span> <span class="fu">names</span>(protein_counts[protein_counts <span class="sc">&gt;=</span> <span class="dv">2</span>])</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Proteins selected by fuzzy intersection:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Proteins selected by fuzzy intersection:</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(fuzzy_proteins)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] "DERM"  "FSTL1" "IgD"   "RELT" </code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># LOGISTIC REGRESSION (on fuzzy intersection)</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ===============================================================</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>biomarker_sstar <span class="ot">&lt;-</span> biomarker_clean <span class="sc">%&gt;%</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(group, <span class="fu">any_of</span>(fuzzy_proteins)) <span class="sc">%&gt;%</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">class =</span> <span class="fu">factor</span>(<span class="fu">ifelse</span>(group <span class="sc">==</span> <span class="st">"ASD"</span>, <span class="st">"ASD"</span>, <span class="st">"TD"</span>))) <span class="sc">%&gt;%</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>group)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">101422</span>)</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>biomarker_split <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(biomarker_sstar, <span class="at">prop =</span> <span class="fl">0.8</span>, <span class="at">strata =</span> class)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(class <span class="sc">~</span> ., <span class="at">data =</span> <span class="fu">training</span>(biomarker_split), <span class="at">family =</span> <span class="st">"binomial"</span>)</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>class_metrics <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(sensitivity, specificity, accuracy, roc_auc)</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">testing</span>(biomarker_split) <span class="sc">%&gt;%</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_predictions</span>(fit, <span class="at">type =</span> <span class="st">"response"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">factor</span>(class, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"TD"</span>, <span class="st">"ASD"</span>)),</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">pred_label =</span> <span class="fu">factor</span>(<span class="fu">ifelse</span>(pred <span class="sc">&gt;</span> <span class="fl">0.5</span>, <span class="st">"ASD"</span>, <span class="st">"TD"</span>), <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"TD"</span>, <span class="st">"ASD"</span>))</span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">class_metrics</span>(<span class="at">truth =</span> class, <span class="at">estimate =</span> pred_label, pred, <span class="at">event_level =</span> <span class="st">"second"</span>)</span>
-<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a><span class="co">#cat("\nLogistic Regression Performance (Fuzzy Intersection):\n")</span></span>
-<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a><span class="co">#print(results, n = Inf)</span></span>
-<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(results, <span class="at">caption =</span> <span class="st">"Logistic Regression Performance (Fuzzy Intersection)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Logistic Regression Performance (Fuzzy Intersection)</caption>
@@ -468,50 +512,34 @@ Proteins selected by fuzzy intersection:</code></pre>
 <tr class="odd">
 <td style="text-align: left;">sensitivity</td>
 <td style="text-align: left;">binary</td>
-<td style="text-align: right;">0.3750000</td>
+<td style="text-align: right;">0.375</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">specificity</td>
 <td style="text-align: left;">binary</td>
-<td style="text-align: right;">0.2500000</td>
+<td style="text-align: right;">0.250</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">accuracy</td>
 <td style="text-align: left;">binary</td>
-<td style="text-align: right;">0.3125000</td>
+<td style="text-align: right;">0.312</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">roc_auc</td>
 <td style="text-align: left;">binary</td>
-<td style="text-align: right;">0.2109375</td>
+<td style="text-align: right;">0.211</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>For this part, we changed the hard intersection between feature selection methods into a fuzzy intersection. Instead of only keeping proteins that showed up in both the t-test and Random Forest results, I kept any proteins that appeared in at least two of the top ten lists. This gave us five proteins: Cadherin-5, DERM, IgD, MRC2, and RELT.</p>
+<p>For this part, we changed the hard intersection between feature selection methods into a fuzzy intersection. Instead of only keeping proteins that showed up in both the t-test and Random Forest results, we kept any proteins that appeared in at least two of the top ten lists. This gave us five proteins: Cadherin-5, DERM, IgD, MRC2, and RELT.</p>
 <p>We used these proteins to train a logistic regression model and then tested how well it could separate ASD from TD samples. At first, the test set didn’t include any ASD samples, which made it impossible to calculate sensitivity and specificity. After redoing the split to make sure both classes were represented, the model ran fine but the overall accuracy and AUROC weren’t that strong.</p>
 <p>In simple terms, the fuzzy intersection added a few more features but didn’t really make the model better. It shows that just because a protein shows up in multiple selection methods doesn’t mean it’s necessarily more useful for predicting ASD. The results also highlight how much random data splitting can affect model performance when the dataset is small.</p>
 </section>
 <section id="simplified-classifier" class="level3">
 <h3 class="anchored" data-anchor-id="simplified-classifier">4) Simplified classifier</h3>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 4 × 3
-  .metric     .estimator .estimate
-  &lt;chr&gt;       &lt;chr&gt;          &lt;dbl&gt;
-1 sensitivity binary         0.75 
-2 specificity binary         0.8  
-3 accuracy    binary         0.774
-4 roc_auc     binary         0.871</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 2 × 5
-  sensitivity specificity accuracy roc_auc method                        
-        &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;                         
-1       0.75        0.8      0.774   0.871 Training-only selection       
-2       0.875       0.867    0.871   0.925 In-class (full-data selection)</code></pre>
-</div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Training vs Full-Data Performance</caption>
@@ -544,13 +572,13 @@ Proteins selected by fuzzy intersection:</code></pre>
 <td style="text-align: right;">0.867</td>
 <td style="text-align: right;">0.871</td>
 <td style="text-align: right;">0.925</td>
-<td style="text-align: left;">In-class (full-data selection)</td>
+<td style="text-align: left;">Full Data (In Class Analysis))</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of multiple testing and random forest methods as in the in-class analysis. By restricting selection to the training set, we avoided using any test data during feature selection, ensuring a more methodologically sound and generalizable panel. This yielded a 4-protein panel, compared with the 5-core proteins identified in Hewitson et al.’s original study. The reduction of a single protein is a modest simplification, and despite this, the panel achieved strong predictive performance (sensitivity 0.75, specificity 0.80, accuracy 0.774, AUC 0.871). Benchmarking against the in-class analysis (sensitivity 0.875, specificity 0.867, accuracy 0.871, AUC 0.925) shows that the slight reduction in performance is minor relative to the substantial gain in interpretability and efficiency, supporting the utility of the smaller panel. By performing feature selection exclusively on training data, our panel avoids overfitting to the dataset and is more likely to generalize to new cohorts. Using a smaller panel with fewer proteins has several practical benefits, including cheaper and faster assays in a lab setting, culminating in easier replication.</p>
+<p>To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of t-tests and random forest variable importance as in the in-class analysis. By restricting selection to the training set, we avoided using any test data, ensuring a more generalizable panel. This procedure yielded a 4-protein panel (via hard intersection), compared with the 5-core proteins in Hewitson et al.’s study. Despite this reduction, the panel achieved strong predictive performance (sensitivity = 0.75, specificity = 0.80, accuracy = 0.774, AUC = 0.871). Benchmarking against the full-data panel (sensitivity = 0.875, specificity = 0.867, accuracy = 0.871, AUC = 0.925) shows a minor drop in performance relative to the gain in interpretability and efficiency. Limiting feature selection to the training set also reduces overfitting risk, improving reproducibility and has practical benefits, as smaller panels facilitate cheaper, faster, and more easily replicated assays.</p>
 </section>
 </section>
 

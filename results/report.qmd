@@ -20,13 +20,14 @@ library(here)
 library(readr)
 library(knitr)
 library(dplyr)
+library(kableExtra)
 raw.biomarkers <- read_csv(here("data", "biomarker-raw.csv"))
 
 ```
 
 ## Abstract
 
-In this analysis, we reexamined serum protein biomarker data from Hewitson et al. (2021) to explore the sensitivity of autism spectrum disorder (ASD) classification results to alternative methodological choices. After log-transforming protein levels to reduce skew and stabilize variance, we investigated the effects of outlier trimming, feature selection thresholds, and data partitioning strategies. Our exploratory analysis showed that outlier frequency varied modestly between groups but did not indicate systematic bias. To assess robustness, we replicated the published multi-method feature selection pipeline, combining t-tests, Random Forest variable importance, and LASSO regression, under modified settings. Using a training-only feature selection procedure, we developed a simplified 4-protein panel that maintained strong predictive performance (AUC = 0.871, accuracy = 0.774) compared to the in-class and published analyses, which used larger protein panels (AUC ≈ 0.92). These findings demonstrate that a smaller, more interpretable model can achieve comparable diagnostic accuracy while reducing overfitting risk and improving methodological rigor. Overall, our results reinforce the stability of the core protein biomarkers while highlighting the potential efficiency gains from streamlined feature selection.
+In this analysis, we reexamined serum protein biomarker data from Hewitson et al. (2021) to evaluate the sensitivity of autism spectrum disorder (ASD) classification to alternative methodological choices. We log-transformed protein levels to reduce skew and stabilize variance, explored outlier patterns, and tested modifications to feature selection and data partitioning strategies. By replicating the multi-method pipeline combining t-tests, Random Forest importance, and LASSO regression, we identified a smaller, 4-protein panel using training-only selection that achieved similarly strong predictive performance (AUC = 0.871, accuracy = 0.774), comparable to larger panels from the in-class and published analyses. These results demonstrate that a streamlined, interpretable model can maintain classification accuracy, reduce overfitting risk, and confirm the robustness of the core protein biomarkers.
 
 ## Dataset
 
@@ -38,37 +39,42 @@ Blood samples were collected after participants fasted, then processed under con
 
 The research used a multi-step approach that combined advanced protein analysis with machine learning techniques to find the best set of protein biomarkers. Initially, serum samples from 76 boys with Autism Spectrum Disorder (ASD) and 78 typically developing (TD) boys were analyzed for proteins using the SomaLogic SOMAScan. This platform originally assessed 1,317 proteins, and after undergoing quality control, 1,125 proteins were analyzed further using bioinformatics techniques. The data on protein abundance were adjusted using log transformation and z-transformation prior to the start of prediction analysis.
 
-To identify the most predictive proteins, 3 distinct computational approaches were used to independently determine the top-10 proteins: Random Forest (RF) analysis, employing MeanDecreaseGini to assess feature importance; t-test analysis, which detected proteins significantly differing between the ASD and TD groups; and a correlation method, which assessed the statistical connection between protein levels and ASD severity, as indicated by ADOS total scores. The proteins that were shared by all three methods were referred to as five "core proteins."
+To identify the most predictive proteins, 3 distinct computational approaches were used to independently determine the top-10 proteins: Random Forest (RF) analysis, employing MeanDecreaseGini to assess feature importance; t-test analysis, which detected proteins significantly differing between the ASD and TD groups; and a correlation method, which assessed the statistical connection between protein levels and ASD severity, as indicated by ADOS total scores. The proteins that were shared by all three methods were referred to as five "core proteins".
 
-After identifying the main proteins, the researchers improved the predictive panel by utilizing a logistic regression model. The ability to predict was assessed by utilizing the Area Under the Curve measurement. This process included gradually incorporating the other non-core proteins into the core group to identify which additions enhanced predictive capability. The logistic regression model was trained by randomly assigning 80% of the subjects to a training dataset and 20% to a test dataset. This procedure was repeated 1,000 times to minimize bias and the optimal panel was made up of 9 proteins. Combining these nine proteins resulted in an AUC of 0.8599 ± 0.0640, sensitivity of 0.835 ± 0.1176, and specificity of 0.8217 ± 0.1178.
+The predictive performance of the proteins was evaluated using a logistic regression model as each non-core protein was added incrementally to the core group. The ability to predict was assessed by utilizing Area Under the Curve (AUC) measurement. This process included gradually incorporating the other non-core proteins into the core group to identify which additions enhanced predictive capability, with four additional proteins selected based on incremental AUC improvement to form a final 9-protein panel. The logistic regression model was trained by randomly assigning 80% of the subjects to a training dataset and 20% to a test dataset. This procedure was repeated 1,000 times to minimize bias and the optimal panel was made up of 9 proteins. Combining these nine proteins resulted in an AUC of 0.8599 ± 0.0640, sensitivity of 0.835 ± 0.1176, and specificity of 0.8217 ± 0.1178.
 
-### Methodological Decisions and Approach
+Below is a schematic of the experimental process in Hewitson et al.:
 
-In our analysis of the ASD biomarker data, we made several key methodological decisions:
+```{mermaid}
+flowchart LR
+    A[data]
+    B(multiple testing)
+    C(correlation analysis)
+    D(random forest)
+    E(ensemble selection)
+    F(logistic regression)
+    MP[multiple partitioning]
 
-1.  Data Processing Choices:
-    -   Retained log-transformation of protein levels to handle skewed distributions and varying scales
-    -   Investigated the impact of outlier trimming on both individual proteins and subjects
-    -   Used standardization (z-scores) for outlier detection across proteins
-2.  Feature Selection Strategy:
-    -   Expanded the protein panel beyond the original 10-protein limit to explore additional biomarkers
-    -   Applied three complementary selection methods:
-        -   T-tests for univariate differential expression
-        -   Random Forest importance scores for capturing non-linear relationships
-        -   LASSO regression for sparse feature selection with correlation consideration
-    -   Set selection threshold at top 20 proteins per method to balance panel size with potential biomarker discovery
-3.  Method Integration:
-    -   Combined results across methods to identify consensus proteins
-    -   Analyzed method agreement through overlap statistics
-    -   Created visualizations to compare rankings across methods
-    -   Used both statistical significance (t-tests) and predictive importance (RF, LASSO) metrics
-4.  Validation Approach:
-    -   Maintained separation between feature selection and model evaluation
-    -   Used cross-validation in LASSO to avoid overfitting
-    -   Set Random Forest parameters (ntree=1000) for stable importance measures
-    -   Considered both individual protein significance and combined panel performance
+    subgraph Outputs
+        G[selected variables]
+        H[accuracy quantification]
+    end
 
-These decisions were made to balance: - Discovery of novel biomarkers vs. risk of false positives - Model complexity vs. interpretability - Statistical rigor vs. practical clinical utility - Reproducibility vs. exploratory analysis
+    A --> B
+    A --> C
+    A --> D
+    B --> E
+    C --> E
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    A --> F
+    A --> MP
+    MP --> H
+
+    style Outputs fill:transparent,stroke:#000,stroke-width:0px
+```
 
 ## Findings
 
@@ -76,7 +82,7 @@ These decisions were made to balance: - Discovery of novel biomarkers vs. risk o
 
 **What do you imagine is the reason for log-transforming the protein levels in biomarker-raw.csv?**
 
-Before protein levels are measured, a log-transformation is applied. The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.
+The protein levels in biomarker-raw.csv are logarithmically transformed to better capture small variations in biomarker level expression. When working with microscopic data such as protein levels, the range of values is often dramatic. As a result, data can often be accentuated more or less and make overall trends harder to detect. To control for this, we can apply a log-transformation to standardize our data range.
 
 To verify this, we can sample from 5 proteins in the dataset and see their respective distributions.
 
@@ -111,7 +117,7 @@ ggplot(aes(x = Value)) +
 
 ```
 
-After plotting the histograms of our sampled proteins, we see that they most (except Apo E4) exhibit notable skewness and are not normally distribution. Additionally, the range for these values is extremely wide. Next, we apply a log-transformation to help standardize our distribtutions.
+After plotting the histograms of our sampled proteins, we see that they most (except Apo E4) exhibit notable skewness and are not normally distribution. Additionally, the range for these values is extremely wide. Next, we apply a log-transformation to help standardize our distributions.
 
 ```{r, fig.align='center', out.width='80%'}
 set.seed(10302025)
@@ -129,7 +135,7 @@ ggplot(aes(x = log(Value))) +
   theme_minimal()
 ```
 
-After transforming our values, we see that the range is now much considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.
+After transforming our values, we see that the range is now considerably smaller. Additionally, most of our proteins sampled follow a close-to-normal distribution. Interestingly, Coagulation Factor IX appears to have a median of about 8.8. This trend was not as apparent with applying a transformation. Thus, we have reason to suspect that this protein should be further investigated.
 
 **Temporarily remove the outlier trimming from preprocessing and do some exploratory analysis of the outlying values. Are there specific subjects (not values) that seem to be outliers? If so, are outliers more frequent in one group of the other?**
 
@@ -165,7 +171,7 @@ We created a table to see outlier trends by subject group. To do so, we standard
 
 ### 3a) Train v. Test Set Analysis
 
-```{r}
+```{r, echo=FALSE}
 library(tidyverse)
 library(tidymodels)
 library(modelr)
@@ -193,7 +199,8 @@ test <- testing(partitions)
 
 # Predicts the probability of ASD (class == TRUE) based on protein levels.
 fit <- glm(class ~ ., data = train, family = binomial(link = "logit"))
-summary(fit)
+fit_coefs <- broom::tidy(fit)
+kable(fit_coefs, digits = 3, caption = "Logistic Regression Coefficients")
 
 # Computing predictions on the test set
 pred_df <- test %>%
@@ -203,7 +210,7 @@ pred_df <- test %>%
          pred_group = factor(pred_class, labels = c("TD", "ASD")))
 
 # Checking factor order
-levels(pred_df$group)
+invisible(levels(pred_df$group))
 
 # Defining evaluation metrics
 panel_fn <- metric_set(accuracy, sensitivity, specificity, roc_auc)
@@ -214,7 +221,7 @@ results <- pred_df %>%
            pred,
            event_level = "second")
 
-results
+kable(results, caption = "Model Evaluation Metrics", digits = 3)
 ```
 
 After conducting the logistic regression on a training subset (80%) and evaluating performance on an excluded test set, the model achieved an accuracy of 0.7097, sensitivity of 0.7222, specificity of 0.6923, and AUROC of 0.8291. These results show that when the model is tested on unseen data, it correctly classifies about 71% of subjects overall and the sensitivity value of 0.72 means the classifier correctly identifies roughly 72% of children with ASD, while the specificity of 0.69 means it correctly recognizes about 69 % of typically developing children.
@@ -328,20 +335,14 @@ Key findings from expanding the protein selection:
 ### 3c) Fuzzy Intersection
 
 ```{r full_analysis, echo=FALSE, message=FALSE, warning=FALSE}
-# ===============================================================
-# Setup
-# ===============================================================
+
 library(tidyverse)
 library(randomForest)
 library(yardstick)
 library(modelr)
 library(tidymodels)
 
-
-
-# ===============================================================
-# T-TESTS
-# ===============================================================
+#t-tests
 test_fn <- function(.df){
   t_test(.df, 
          formula = level ~ group,
@@ -366,40 +367,39 @@ proteins_s1 <- ttests_out %>%
   slice_min(p.adj, n = 10) %>%
   pull(protein)
 
-cat("Top proteins from t-tests:\n")
-print(proteins_s1)
+kable(data.frame(Protein = proteins_s1), 
+      caption = "Top proteins from t-tests") %>%
+  kable_styling(position = "center")
 
-# ===============================================================
-# RANDOM FOREST
-# ===============================================================
+#rf
 predictors <- biomarker_clean %>% select(-c(group, ados))
 response <- factor(biomarker_clean$group)
 
 set.seed(101422)
 rf_out <- randomForest(x = predictors, y = response, ntree = 1000, importance = TRUE)
 cat("\nRandom Forest confusion matrix:\n")
-print(rf_out$confusion)
+kable(as.data.frame(rf_out$confusion), 
+      caption = "Random Forest Confusion Matrix", digits = 3)
 
 proteins_s2 <- rf_out$importance %>%
   as_tibble(rownames = "protein") %>%
   slice_max(MeanDecreaseGini, n = 10) %>%
   pull(protein)
 
-cat("\nTop proteins from Random Forest:\n")
-print(proteins_s2)
+kable(data.frame(Protein = proteins_s2), 
+      caption = "Top proteins from Random Forest")%>%
+  kable_styling(position = "center")
 
-# ===============================================================
-# FUZZY INTERSECTION
-# ===============================================================
+#fuzzy intersection
 protein_counts <- table(c(proteins_s1, proteins_s2))
 fuzzy_proteins <- names(protein_counts[protein_counts >= 2])
 
-cat("\nProteins selected by fuzzy intersection:\n")
-print(fuzzy_proteins)
+kable(data.frame(Protein = fuzzy_proteins), 
+      caption = "Proteins Selected by Fuzzy Intersection")%>%
+  kable_styling(position = "center")
 
-# ===============================================================
-# LOGISTIC REGRESSION (on fuzzy intersection)
-# ===============================================================
+#log regression on fuzzy intersection
+
 biomarker_sstar <- biomarker_clean %>%
   select(group, any_of(fuzzy_proteins)) %>%
   mutate(class = factor(ifelse(group == "ASD", "ASD", "TD"))) %>%
@@ -422,11 +422,11 @@ results <- testing(biomarker_split) %>%
 
 #cat("\nLogistic Regression Performance (Fuzzy Intersection):\n")
 #print(results, n = Inf)
-kable(results, caption = "Logistic Regression Performance (Fuzzy Intersection)")
+kable(results, caption = "Logistic Regression Performance (Fuzzy Intersection)", digits = 3)
 
 ```
 
-For this part, we changed the hard intersection between feature selection methods into a fuzzy intersection. Instead of only keeping proteins that showed up in both the t-test and Random Forest results, I kept any proteins that appeared in at least two of the top ten lists. This gave us five proteins: Cadherin-5, DERM, IgD, MRC2, and RELT.
+For this part, we changed the hard intersection between feature selection methods into a fuzzy intersection. Instead of only keeping proteins that showed up in both the t-test and Random Forest results, we kept any proteins that appeared in at least two of the top ten lists. This gave us five proteins: Cadherin-5, DERM, IgD, MRC2, and RELT.
 
 We used these proteins to train a logistic regression model and then tested how well it could separate ASD from TD samples. At first, the test set didn’t include any ASD samples, which made it impossible to calculate sensitivity and specificity. After redoing the split to make sure both classes were represented, the model ran fine but the overall accuracy and AUROC weren’t that strong.
 
@@ -533,13 +533,13 @@ test_sstar_eval <- test_sstar %>%
 class_metrics <- metric_set(sensitivity, specificity, accuracy, roc_auc)
 
 # evaluate
-test_sstar_eval %>%
+invisible(test_sstar_eval %>%
   class_metrics(
     truth = truth,
     estimate = estimate,
     pred,
     event_level = "second"
-  )
+  ))
 
 
 set.seed(101422)
@@ -636,16 +636,14 @@ metrics_full <- test_full_eval %>%
     accuracy    = accuracy_vec(truth, estimate),
     roc_auc     = roc_auc_vec(truth, pred, event_level = "second")
   ) %>%
-  mutate(method = "In-class (full-data selection)")
+  mutate(method = "Full Data (In Class Analysis))")
 
 #combine and compare
-bind_rows(metrics_yours, metrics_full)
 
-
-kable(dplyr::bind_rows(metrics_yours, metrics_full),
+kable(bind_rows(metrics_yours, metrics_full),
         caption = "Training vs Full-Data Performance",
         digits = 3)
 
 ```
 
-To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of multiple testing and random forest methods as in the in-class analysis. By restricting selection to the training set, we avoided using any test data during feature selection, ensuring a more methodologically sound and generalizable panel. This yielded a 4-protein panel, compared with the 5-core proteins identified in Hewitson et al.’s original study. The reduction of a single protein is a modest simplification, and despite this, the panel achieved strong predictive performance (sensitivity 0.75, specificity 0.80, accuracy 0.774, AUC 0.871). Benchmarking against the in-class analysis (sensitivity 0.875, specificity 0.867, accuracy 0.871, AUC 0.925) shows that the slight reduction in performance is minor relative to the substantial gain in interpretability and efficiency, supporting the utility of the smaller panel. By performing feature selection exclusively on training data, our panel avoids overfitting to the dataset and is more likely to generalize to new cohorts. Using a smaller panel with fewer proteins has several practical benefits, including cheaper and faster assays in a lab setting, culminating in easier replication.
+To identify a simpler panel while maintaining comparable classification accuracy, we applied a training-only feature selection procedure using the same combination of t-tests and random forest variable importance as in the in-class analysis. By restricting selection to the training set, we avoided using any test data, ensuring a more generalizable panel. This procedure yielded a 4-protein panel (via hard intersection), compared with the 5-core proteins in Hewitson et al.’s study. Despite this reduction, the panel achieved strong predictive performance (sensitivity = 0.75, specificity = 0.80, accuracy = 0.774, AUC = 0.871). Benchmarking against the full-data panel (sensitivity = 0.875, specificity = 0.867, accuracy = 0.871, AUC = 0.925) shows a minor drop in performance relative to the gain in interpretability and efficiency. Limiting feature selection to the training set also reduces overfitting risk, improving reproducibility and has practical benefits, as smaller panels facilitate cheaper, faster, and more easily replicated assays.
